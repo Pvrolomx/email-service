@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
+import sgMail from "@sendgrid/mail";
 
 // CORS headers
 const corsHeaders = {
@@ -8,8 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-// Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Configurar SendGrid
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
 // Handle OPTIONS (CORS preflight)
 export async function OPTIONS() {
@@ -45,24 +45,19 @@ export async function POST(req: NextRequest) {
       </div>
     `;
 
-    // Enviar email con Resend
-    const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
-      to: Array.isArray(to) ? to : [to],
+    // Enviar email con SendGrid
+    const msg = {
+      to: Array.isArray(to) ? to : to,
+      from: process.env.SENDGRID_FROM_EMAIL || "noreply@castlesolutions.mx",
       subject,
       html: htmlContent,
-      reply_to: from || undefined,
-    });
+      replyTo: from || undefined,
+    };
 
-    if (error) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500, headers: corsHeaders }
-      );
-    }
+    await sgMail.send(msg);
 
     return NextResponse.json(
-      { success: true, message: "Email enviado correctamente", id: data?.id },
+      { success: true, message: "Email enviado correctamente" },
       { headers: corsHeaders }
     );
   } catch (error: any) {
