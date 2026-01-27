@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 // CORS headers
 const corsHeaders = {
@@ -8,14 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-// Transporter (se configura con env vars)
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD,
-  },
-});
+// Resend client
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Handle OPTIONS (CORS preflight)
 export async function OPTIONS() {
@@ -51,17 +45,24 @@ export async function POST(req: NextRequest) {
       </div>
     `;
 
-    // Enviar email
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to,
+    // Enviar email con Resend
+    const { data, error } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+      to: Array.isArray(to) ? to : [to],
       subject,
       html: htmlContent,
-      replyTo: from || process.env.EMAIL_USER,
+      replyTo: from || undefined,
     });
 
+    if (error) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
     return NextResponse.json(
-      { success: true, message: "Email enviado correctamente" },
+      { success: true, message: "Email enviado correctamente", id: data?.id },
       { headers: corsHeaders }
     );
   } catch (error: any) {
