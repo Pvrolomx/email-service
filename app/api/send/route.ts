@@ -8,9 +8,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-// Configurar SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
-
 // Handle OPTIONS (CORS preflight)
 export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
@@ -19,6 +16,16 @@ export async function OPTIONS() {
 // Handle POST (enviar email)
 export async function POST(req: NextRequest) {
   try {
+    // Configurar SendGrid en cada request
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { success: false, error: "SENDGRID_API_KEY no configurado" },
+        { status: 500, headers: corsHeaders }
+      );
+    }
+    sgMail.setApiKey(apiKey);
+
     const body = await req.json();
     const { to, subject, message, from, name } = body;
 
@@ -62,8 +69,9 @@ export async function POST(req: NextRequest) {
     );
   } catch (error: any) {
     console.error("Error enviando email:", error);
+    const errorMsg = error.response?.body?.errors?.[0]?.message || error.message || "Error al enviar email";
     return NextResponse.json(
-      { success: false, error: error.message || "Error al enviar email" },
+      { success: false, error: errorMsg },
       { status: 500, headers: corsHeaders }
     );
   }
