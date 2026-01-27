@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       to: Array.isArray(to) ? to : [to],
       subject,
       html: htmlContent,
-      replyTo: from || undefined,
+      reply_to: from || undefined,
     });
 
     if (error) {
