@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import sgMail from "@sendgrid/mail";
 
+// Dominios verificados en SendGrid
+const VERIFIED_DOMAINS: Record<string, string> = {
+  "duendes.app": "pacto@duendes.app",
+  "castlesolutions.mx": "noreply@castlesolutions.mx",
+  "castlesolutions.biz": "noreply@castlesolutions.mx",
+};
+
 // CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +34,7 @@ export async function POST(req: NextRequest) {
     sgMail.setApiKey(apiKey);
 
     const body = await req.json();
-    const { to, subject, message, from, name } = body;
+    const { to, subject, message, from, name, sendFrom } = body;
 
     // Validar campos requeridos
     if (!to || !subject || !message) {
@@ -35,6 +42,16 @@ export async function POST(req: NextRequest) {
         { success: false, error: "Faltan campos: to, subject, message" },
         { status: 400, headers: corsHeaders }
       );
+    }
+
+    // Determinar el remitente verificado
+    // Si se especifica sendFrom y está verificado, usarlo
+    // Si no, usar el default de castlesolutions
+    let verifiedFrom = VERIFIED_DOMAINS["castlesolutions.mx"];
+    let senderName = name || "Email Service";
+    
+    if (sendFrom && VERIFIED_DOMAINS[sendFrom]) {
+      verifiedFrom = VERIFIED_DOMAINS[sendFrom];
     }
 
     // Formatear HTML del email
@@ -55,7 +72,10 @@ export async function POST(req: NextRequest) {
     // Enviar email con SendGrid
     const msg = {
       to: Array.isArray(to) ? to : to,
-      from: process.env.SENDGRID_FROM_EMAIL || "noreply@castlesolutions.mx",
+      from: {
+        email: verifiedFrom,
+        name: senderName,
+      },
       subject,
       html: htmlContent,
       replyTo: from || undefined,
