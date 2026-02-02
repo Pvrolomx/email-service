@@ -6,6 +6,7 @@ const VERIFIED_DOMAINS: Record<string, string> = {
   "duendes.app": "pacto@duendes.app",
   "castlesolutions.mx": "noreply@castlesolutions.mx",
   "castlesolutions.biz": "noreply@castlesolutions.mx",
+  "expatadvisormx.com": "info@expatadvisormx.com",
 };
 
 // CORS headers
