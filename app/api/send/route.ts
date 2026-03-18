@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         <div style="white-space: pre-wrap; color: #555;">${message}</div>
         <hr style="border: 1px solid #eee;" />
         <p style="font-size: 12px; color: #999;">
-          Enviado via Email Service - Colmena 2026
+          Enviado via Castle Solutions - 2026
         </p>
       </div>
     `;
@@ -97,3 +97,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
