@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import sgMail from "@sendgrid/mail";
+import { Resend } from "resend";
 
-// Dominios verificados en SendGrid
+// Dominios verificados en Resend
 const VERIFIED_DOMAINS: Record<string, string> = {
   "duendes.app": "pacto@duendes.app",
   "castlesolutions.mx": "noreply@castlesolutions.mx",
@@ -24,16 +24,15 @@ export async function OPTIONS() {
 // Handle POST (enviar email)
 export async function POST(req: NextRequest) {
   try {
-    // Configurar SendGrid en cada request
-    const apiKey = process.env.SENDGRID_API_KEY;
+    const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, error: "SENDGRID_API_KEY no configurado" },
+        { success: false, error: "RESEND_API_KEY no configurado" },
         { status: 500, headers: corsHeaders }
       );
     }
-    sgMail.setApiKey(apiKey);
 
+    const resend = new Resend(apiKey);
     const body = await req.json();
     const { to, subject, message, from, name, sendFrom } = body;
 
@@ -46,9 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Determinar el remitente verificado
-    // Si se especifica sendFrom y está verificado, usarlo
-    // Si no, usar el default de castlesolutions
-    let verifiedFrom = VERIFIED_DOMAINS["castlesolutions.mx"];
+    let verifiedFrom = VERIFIED_DOMAINS["expatadvisormx.com"];
     let senderName = name || "Email Service";
     
     if (sendFrom && VERIFIED_DOMAINS[sendFrom]) {
@@ -70,31 +67,32 @@ export async function POST(req: NextRequest) {
       </div>
     `;
 
-    // Enviar email con SendGrid
-    const msg = {
-      to: Array.isArray(to) ? to : to,
-      from: {
-        email: verifiedFrom,
-        name: senderName,
-      },
+    const { data, error } = await resend.emails.send({
+      from: `${senderName} <${verifiedFrom}>`,
+      to: Array.isArray(to) ? to : [to],
       subject,
       html: htmlContent,
       replyTo: from || undefined,
-    };
+    });
 
-    await sgMail.send(msg);
+    if (error) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500, headers: corsHeaders }
+      );
+    }
 
     return NextResponse.json(
-      { success: true, message: "Email enviado correctamente" },
+      { success: true, message: "Email enviado correctamente", id: data?.id },
       { headers: corsHeaders }
     );
   } catch (error: any) {
     console.error("Error enviando email:", error);
-    const errorMsg = error.response?.body?.errors?.[0]?.message || error.message || "Error al enviar email";
     return NextResponse.json(
-      { success: false, error: errorMsg },
+      { success: false, error: error.message || "Error al enviar email" },
       { status: 500, headers: corsHeaders }
     );
   }
 }
+
 

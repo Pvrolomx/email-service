@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import sgMail from "@sendgrid/mail";
+import { Resend } from "resend";
+
+// DESTINO FIJO: pvrolomx@yahoo.com.mx
+const REPORT_EMAIL = "pvrolomx@yahoo.com.mx";
 
 export async function GET(req: NextRequest) {
   try {
-    // Verify cron secret (optional security)
+    // Verify cron secret (Vercel sends this automatically)
     const authHeader = req.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
@@ -12,18 +15,19 @@ export async function GET(req: NextRequest) {
 
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-    const sendgridKey = process.env.SENDGRID_API_KEY;
-    const reportEmail = process.env.REPORT_EMAIL || "pvrolomx@yahoo.com.mx";
+    const resendKey = process.env.RESEND_API_KEY;
 
-    if (!supabaseUrl || !supabaseKey || !sendgridKey) {
+    if (!supabaseUrl || !supabaseKey || !resendKey) {
       return NextResponse.json({ error: "Missing config" }, { status: 500 });
     }
+
+    const resend = new Resend(resendKey);
 
     // Get yesterday's date range (UTC-6 for Mexico)
     const now = new Date();
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
-    const startOfDay = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 6, 0, 0); // UTC midnight CST = 6 UTC
+    const startOfDay = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 6, 0, 0);
     const endOfDay = new Date(startOfDay);
     endOfDay.setDate(endOfDay.getDate() + 1);
 
@@ -101,19 +105,22 @@ export async function GET(req: NextRequest) {
         ${peakHour ? `<p style="margin-top: 1rem; opacity: 0.8;">Hora pico: <strong style="color: #D4A853;">${peakHour[0]}:00 hrs</strong> (${peakHour[1]} visitas)</p>` : ""}
 
         <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 1.5rem 0;" />
-        <p style="font-size: 0.8rem; opacity: 0.5;">Enviado via Expat Advisor MX - ${new Date().getFullYear()}</p>
+        <p style="font-size: 0.8rem; opacity: 0.5;">Enviado via Duendes - ${new Date().getFullYear()}</p>
       </div>
     `;
 
-    sgMail.setApiKey(sendgridKey);
-    await sgMail.send({
-      to: reportEmail,
-      from: { email: "info@expatadvisormx.com", name: "Expat Advisor MX" },
+    const { error } = await resend.emails.send({
+      from: "Expat Advisor MX <info@expatadvisormx.com>",
+      to: [REPORT_EMAIL],
       subject: `[Expat Advisor] Reporte diario — ${totalVisits} visitas — ${dateStr}`,
       html: htmlContent,
     });
 
-    return NextResponse.json({ success: true, visits: totalVisits });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, visits: totalVisits, sentTo: REPORT_EMAIL });
   } catch (error: any) {
     console.error("Daily report error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

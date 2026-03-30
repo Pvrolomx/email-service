@@ -3,6 +3,10 @@
     {
       "path": "/api/daily-report",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/fantasma-report",
+      "schedule": "45 12 * * *"
     }
   ]
 }
