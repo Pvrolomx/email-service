@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
-// DESTINO FIJO: pvrolomx@yahoo.com.mx
-const REPORT_EMAIL = "pvrolomx@yahoo.com.mx";
+// DESTINO FIJO: rolo@expatadvisormx.com
+const REPORT_EMAIL = "rolo@expatadvisormx.com";
 
 export async function GET(req: NextRequest) {
   try {
