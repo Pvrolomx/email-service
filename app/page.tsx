@@ -1,113 +1,10 @@
-"use client";
-
-import { useState } from "react";
-
 export default function Home() {
-  const [formData, setFormData] = useState({
-    to: "",
-    subject: "",
-    message: "",
-    from: "",
-    name: "",
-  });
-  const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setStatus(null);
-
-    try {
-      const res = await fetch("/api/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setStatus({ type: "success", text: "✅ Email enviado correctamente" });
-        setFormData({ to: "", subject: "", message: "", from: "", name: "" });
-      } else {
-        setStatus({ type: "error", text: `❌ ${data.error}` });
-      }
-    } catch (error) {
-      setStatus({ type: "error", text: "❌ Error de conexión" });
-    }
-
-    setLoading(false);
-  };
-
   return (
     <main className="container">
       <h1>📧 Email Service</h1>
       <p style={{ color: "#888", marginBottom: "2rem" }}>
-        API simple para enviar emails desde cualquier formulario
+        API simple para enviar emails desde los formularios de contacto propios
       </p>
-
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>Para (email destino)*</label>
-          <input
-            type="email"
-            value={formData.to}
-            onChange={(e) => setFormData({ ...formData, to: e.target.value })}
-            placeholder="destino@ejemplo.com"
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Asunto*</label>
-          <input
-            type="text"
-            value={formData.subject}
-            onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-            placeholder="Asunto del email"
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Tu nombre</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Tu nombre"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Tu email (para respuestas)</label>
-          <input
-            type="email"
-            value={formData.from}
-            onChange={(e) => setFormData({ ...formData, from: e.target.value })}
-            placeholder="tu@email.com"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Mensaje*</label>
-          <textarea
-            value={formData.message}
-            onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-            placeholder="Escribe tu mensaje aquí..."
-            required
-          />
-        </div>
-
-        <button type="submit" disabled={loading}>
-          {loading ? "Enviando..." : "Enviar Email"}
-        </button>
-      </form>
-
-      {status && (
-        <div className={`message ${status.type}`}>{status.text}</div>
-      )}
 
       <div className="docs">
         <h2>📚 Cómo usar la API</h2>
@@ -119,14 +16,39 @@ export default function Home() {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    to: "destino@email.com",    // Requerido
-    subject: "Asunto",          // Requerido
-    message: "Contenido",       // Requerido
-    from: "remitente@email.com", // Opcional
-    name: "Nombre"              // Opcional
+    to: "info@expatadvisormx.com", // Requerido. Solo buzones de dominios propios
+    subject: "Asunto",             // Requerido
+    message: "Contenido",          // Requerido
+    from: "remitente@email.com",   // Opcional. Se usa como reply-to
+    name: "Nombre",                // Opcional
+    sendFrom: "expatadvisormx.com" // Opcional. Elige el remitente verificado
   })
 })`}
         </pre>
+
+        <h2>🔒 Límites</h2>
+        <ul style={{ color: "#888", lineHeight: 1.8 }}>
+          <li>
+            <strong>Destinatarios:</strong> solo buzones de los dominios verificados en Resend
+            (<code>expatadvisormx.com</code>, <code>castlesolutions.mx</code>,{" "}
+            <code>castlesolutions.biz</code>, <code>duendes.app</code>). Cualquier otra dirección
+            devuelve <code>403</code>. Es lo que evita que el endpoint sirva de relay abierto.
+          </li>
+          <li>
+            <strong>Contenido:</strong> el texto que manda el cliente se escapa antes de entrar al
+            HTML del correo, para que nadie inyecte enlaces ni markup en un mensaje que sale con
+            SPF/DKIM válidos de un dominio propio.
+          </li>
+          <li>
+            <strong>Frecuencia:</strong> 10 envíos por IP cada 10 minutos. Es best-effort: el
+            contador vive en memoria y cada instancia serverless tiene la suya.
+          </li>
+        </ul>
+
+        <p style={{ color: "#888", marginTop: "1rem" }}>
+          Esta página ya no trae formulario de envío: era una forma pública que permitía disparar
+          correos desde los dominios verificados sin pasar por ninguno de los sitios propios.
+        </p>
       </div>
 
       <footer>
